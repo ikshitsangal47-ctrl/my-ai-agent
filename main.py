@@ -23,7 +23,7 @@ from pptx import Presentation
 try:
     import pyttsx3
     engine = pyttsx3.init()
-except Exception as e:
+except Exception:
     engine = None
 
 def speak(text):
@@ -46,7 +46,13 @@ def listen_command():
             print(f"You said: {command}")
             return command.lower()
     except Exception:
-        return ""
+        # Fallback to manual text input if microphone/PyAudio is unavailable or fails
+        print("\nMicrophone not available.")
+        try:
+            command = input("Type your command: ")
+            return command.lower()
+        except EOFError:
+            return ""
 
 def open_youtube(search_query=""):
     speak("Opening YouTube...")
