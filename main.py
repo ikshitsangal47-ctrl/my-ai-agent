@@ -13,6 +13,10 @@ if not os.path.exists(xauth_path):
     except Exception:
         pass
 
+# Suppress ALSA / Audio warnings in terminal output
+os.environ["PYGAME_HIDE_SUPPORT_PROMPT"] = "1"
+sys.stderr = open(os.devnull, 'w')
+
 import speech_recognition as sr
 import pyautogui
 from playwright.sync_api import sync_playwright
@@ -27,7 +31,8 @@ except Exception:
     engine = None
 
 def speak(text):
-    print(f"Agent: {text}")
+    sys.stdout.write(f"\n[Agent]: {text}\n")
+    sys.stdout.flush()
     if engine:
         try:
             engine.say(text)
@@ -36,35 +41,34 @@ def speak(text):
             pass
 
 def listen_command():
-    recognizer = sr.Recognizer()
     try:
+        recognizer = sr.Recognizer()
         with sr.Microphone() as source:
-            print("\nListening...")
             recognizer.adjust_for_ambient_noise(source, duration=1)
-            audio = recognizer.listen(source, timeout=5)
+            audio = recognizer.listen(source, timeout=3)
             command = recognizer.recognize_google(audio)
-            print(f"You said: {command}")
             return command.lower()
     except Exception:
-        # Fallback to manual text input if microphone/PyAudio is unavailable or fails
-        print("\nMicrophone not available.")
+        # Fallback to text input
         try:
-            command = input("Type your command: ")
-            return command.lower()
-        except EOFError:
-            return ""
+            command = input("\nType your command > ")
+            return command.lower().strip()
+        except (EOFError, KeyboardInterrupt):
+            sys.exit()
 
 def open_youtube(search_query=""):
-    speak("Opening YouTube...")
-    with sync_playwright() as p:
-        browser = p.chromium.launch(headless=False)
-        page = browser.new_page()
-        if search_query:
-            page.goto(f"https://www.youtube.com/results?search_query={search_query}")
-        else:
-            page.goto("https://www.youtube.com")
-        time.sleep(5)
-        browser.close()
+    speak(f"Opening YouTube for search: '{search_query if search_query else 'Home'}'...")
+    try:
+        with sync_playwright() as p:
+            browser = p.chromium.launch(headless=True) # Container friendly
+            page = browser.new_page()
+            url = f"https://www.youtube.com/results?search_query={search_query}" if search_query else "https://www.youtube.com"
+            page.goto(url)
+            speak(f"Page loaded successfully: {page.title()}")
+            time.sleep(3)
+            browser.close()
+    except Exception as e:
+        speak(f"Failed to open browser: {e}")
 
 def create_excel_sheet():
     speak("Creating Excel spreadsheet...")
@@ -74,28 +78,27 @@ def create_excel_sheet():
     ws.append(["ID", "Task", "Status"])
     ws.append([1, "Voice Agent Setup", "Completed"])
     wb.save("Agent_Report.xlsx")
-    speak("Excel sheet saved as Agent_Report.xlsx")
+    speak("Excel sheet saved as 'Agent_Report.xlsx' in current directory!")
 
 def create_presentation():
     speak("Creating PowerPoint presentation...")
     prs = Presentation()
     slide_layout = prs.slide_layouts[0]
     slide = prs.slides.add_slide(slide_layout)
-    title = slide.shapes.title
-    subtitle = slide.placeholders[1]
-    title.text = "AI Desktop Agent"
-    subtitle.text = "Automated Task Execution"
+    slide.shapes.title.text = "AI Desktop Agent"
+    slide.placeholders[1].text = "Automated Task Execution"
     prs.save("Agent_Presentation.pptx")
-    speak("Presentation saved as Agent_Presentation.pptx")
+    speak("Presentation saved as 'Agent_Presentation.pptx' in current directory!")
 
 def main():
     speak("Custom AI Desktop Agent is online and ready.")
     while True:
         command = listen_command()
-        
+        if not command:
+            continue
+            
         if "youtube" in command:
-            speak("What should I search on YouTube?")
-            query = listen_command()
+            query = input("Enter YouTube search query > ")
             open_youtube(query)
         elif "excel" in command or "sheet" in command:
             create_excel_sheet()
@@ -104,6 +107,8 @@ def main():
         elif "exit" in command or "stop" in command:
             speak("Shutting down agent. Goodbye!")
             sys.exit()
+        else:
+            speak(f"Command '{command}' not recognized. Try 'youtube', 'excel', 'presentation', or 'exit'.")
 
 if __name__ == "__main__":
     main()
