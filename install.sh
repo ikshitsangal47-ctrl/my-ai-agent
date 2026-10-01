@@ -3,10 +3,10 @@ echo "=========================================="
 echo "Setting up Custom AI Desktop Agent for Linux"
 echo "=========================================="
 
-# 1. System packages installation
+# 1. System packages installation (Added espeak & libespeak1)
 echo "[1/5] Installing system dependencies..."
 sudo apt-get update
-sudo apt-get install -y python3-pip python3-venv python3-tk scrot x11-utils xvfb portaudio19-dev
+sudo apt-get install -y python3-pip python3-venv python3-tk scrot x11-utils xvfb portaudio19-dev espeak espeak-ng libespeak1
 
 # 2. Virtual environment setup
 echo "[2/5] Setting up Python virtual environment..."
