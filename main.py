@@ -10,41 +10,43 @@ xauth_path = os.path.expanduser("~/.Xauthority")
 if not os.path.exists(xauth_path):
     try:
         open(xauth_path, "a").close()
-    except Exception as e:
+    except Exception:
         pass
 
 import speech_recognition as sr
-import pyttsx3
 import pyautogui
 from playwright.sync_api import sync_playwright
 import openpyxl
 from pptx import Presentation
 
-# Initialize Text-To-Speech engine
-engine = pyttsx3.init()
+# Safe Text-To-Speech Engine Initialisation
+try:
+    import pyttsx3
+    engine = pyttsx3.init()
+except Exception as e:
+    engine = None
 
 def speak(text):
     print(f"Agent: {text}")
-    engine.say(text)
-    engine.runAndWait()
+    if engine:
+        try:
+            engine.say(text)
+            engine.runAndWait()
+        except Exception:
+            pass
 
 def listen_command():
     recognizer = sr.Recognizer()
-    with sr.Microphone() as source:
-        print("\nListening...")
-        recognizer.adjust_for_ambient_noise(source, duration=1)
-        try:
+    try:
+        with sr.Microphone() as source:
+            print("\nListening...")
+            recognizer.adjust_for_ambient_noise(source, duration=1)
             audio = recognizer.listen(source, timeout=5)
             command = recognizer.recognize_google(audio)
             print(f"You said: {command}")
             return command.lower()
-        except sr.UnknownValueError:
-            return ""
-        except sr.RequestError:
-            speak("Speech service is unavailable.")
-            return ""
-        except Exception:
-            return ""
+    except Exception:
+        return ""
 
 def open_youtube(search_query=""):
     speak("Opening YouTube...")
@@ -99,4 +101,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-  
